@@ -1,4 +1,6 @@
 # OFFICE-CONVERTER
+[![NPM version][npm-image]][npm-url]
+
 use this module, you should confirm LibreOffice and Unoconv installed in your machine.
 
 ## install LibreOffice
@@ -61,3 +63,6 @@ or
 var converter = require('office-convert').createConveter();
 converter.listen();
 ```
+
+[npm-image]: https://img.shields.io/npm/v/office-convert.svg?style=flat-square
+[npm-url]: https://www.npmjs.com/package/office-convert
