@@ -1,0 +1,19 @@
+{
+  "name": "office-convert",
+  "version": "0.1.0",
+  "description": "Wrapper for converting documents with unoconv.\nconvert office document to other file type or html.",
+  "keywords": [
+    "unoconv",
+    "convert office",
+    "html",
+    "office",
+    "document"
+  ],
+  "main": "index.js",
+  "homepage": "https://github.com/xuezier/office-convert.git",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "xuezi",
+  "license": "ISC"
+}
