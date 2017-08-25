@@ -1,6 +1,6 @@
 {
   "name": "office-convert",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Wrapper for converting documents with unoconv.\nconvert office document to other file type or html.",
   "keywords": [
     "unoconv",

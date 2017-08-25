@@ -3,9 +3,15 @@ var childProcess = require('child_process');
 var eventEmitter = require('events');
 
 var convertFun = require('./convert-fun');
+var convertEvent = require('./convert-event');
 var _ = require('../lib/utils');
-require('../lib/expand');
 
+/**
+ * Convert office file to other type
+ *
+ * @class Converter
+ * @extends {eventEmitter}
+ */
 class Converter extends eventEmitter {
   /**
    * Creates an instance of Converter.
@@ -19,11 +25,19 @@ class Converter extends eventEmitter {
 
     this.config = Object.assign(Converter.defaultParams, params || {});
     this.SERVICE_STATUS = Converter.SERVICE_STOP;
+    this.CONVERT_STATUS = Converter.CONVERT_STOP;
 
-    this.queueMap = new Map();
-    this.startQueue = [];
+    this._convertQueue = [];
+    this._convertId = 0;
+    this._startQueue = [];
 
     if (this.config.listener) this.listen();
+
+    this.on('convert.finish', convertEvent.finish.bind(this));
+    this.on('convert.running', convertEvent.running.bind(this));
+    this.on('convert.stop', convertEvent.stop.bind(this));
+    this.on('service.started', convertEvent.serviceStart.bind(this));
+    this.on('service.start.queue.finished', convertEvent.finishStart.bind(this));
   }
 
   /**
@@ -34,10 +48,12 @@ class Converter extends eventEmitter {
    */
   listen() {
     var self = this;
+    this.config.listener = true;
     if (this.SERVICE_STATUS !== Converter.SERVICE_STOP) return;
 
+    if (this._convertId) throw new Error('listen event must be called before generate convert file');
+
     this.SERVICE_STATUS = Converter.SERVICE_STARTING;
-    this.on('service.started', this._onServiceStarted.bind(this));
 
     var bin = 'unoconv',
       args = ['--listener'];
@@ -45,7 +61,7 @@ class Converter extends eventEmitter {
 
     var _timer = setInterval(function() {
       var child = childProcess.spawnSync('lsof', ['-i', 'tcp:2002']);
-      var stdout=child.stdout.toString();
+      var stdout = child.stdout.toString();
       if (stdout) {
         console.log(stdout);
         self.SERVICE_STATUS = Converter.SERVICE_STARTED;
@@ -53,14 +69,6 @@ class Converter extends eventEmitter {
         clearInterval(_timer);
       }
     });
-  }
-
-  _onServiceStarted() {
-    if (!this.startQueue.length) return;
-
-    var _eventId = this.startQueue.shift();
-    console.log(_eventId);
-    this.emit(_eventId);
   }
 
   /**
@@ -74,27 +82,52 @@ class Converter extends eventEmitter {
    * @memberof Converter
    */
   generate(filePath, outputType, outputName, callback) {
-    if (this.SERVICE_STATUS === Converter.SERVICE_STOP) return Promise.reject(new Error('please start unoconv first'));
+    var self = this;
+    var args = arguments;
 
-    else if (this.SERVICE_STATUS === Converter.SERVICE_STARTING) {
-      var _eventId = `_startedbefore${this.startQueue.length}`;
-      this.startQueue.push(_eventId);
-      var self = this;
-      var args = arguments;
-      return new Promise(function(resolve, reject) {
-        self.on(_eventId, function() {
-          convertFun._generate.apply(null, args).then(result => {
-            resolve(result);
-            self.emit('service.started');
-          }).catch(e => {
-            reject(e);
-            self.emit('service.started');
+    if (this.config.listener && (this.SERVICE_STATUS !== Converter.SERVICE_STARTED)) {
+      if (this.SERVICE_STATUS === Converter.SERVICE_STOP) return Promise.reject(new Error('please start unoconv first'));
+
+      else if (this.SERVICE_STATUS === Converter.SERVICE_STARTING) {
+        var _eventId = `_startedbefore${this._startQueue.length}`;
+        this._startQueue.push(_eventId);
+        return new Promise(function(resolve, reject) {
+          self.on(_eventId, function() {
+            convertFun._generate.apply(this, args).then(result => {
+              resolve(result);
+              self.emit('service.started');
+            }).catch(e => {
+              reject(e);
+              self.emit('service.started');
+            });
           });
         });
-      });
+      }
     } else {
-      return convertFun._generate.apply(null, arguments);
+      if (this.CONVERT_STATUS === Converter.CONVERT_STOP || this.CONVERT_STATUS === Converter.CONVERT_FINISHED)
+        return this._generate.apply(this, arguments);
+      else {
+        var _convertId = `_convert${this._convertId++}`;
+        this._convertQueue.push(_convertId);
+        return new Promise(function(resolve, reject) {
+          self.on(_convertId, function() {
+            self._generate.apply(self, args).then(resolve).catch(reject);
+          });
+        });
+      }
     }
+  }
+
+  _generate() {
+    var self = this,
+      args = arguments;
+    this.CONVERT_STATUS = Converter.CONVERT_RUNNING;
+    return new Promise(function(resolve, reject) {
+      convertFun._generate.apply(null, args).then(function(result) {
+        self.emit('convert.finish');
+        resolve(result);
+      }).catch(reject);
+    });
   }
 
   /**
@@ -150,13 +183,7 @@ class Converter extends eventEmitter {
   }
 }
 
-Converter.defaultParams = {
-  queue: 5,
-  listener: false
-};
-Converter.SERVICE_STOP = 'stop';
-Converter.SERVICE_STARTING = 'starting';
-Converter.SERVICE_STARTED = 'started';
+require('./converter-status')(Converter);
 
 var converter = null;
 /**
