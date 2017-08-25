@@ -23,7 +23,7 @@ class Converter extends eventEmitter {
     this.queueMap = new Map();
     this.startQueue = [];
 
-    if (this.config.auto) this.listen();
+    if (this.config.listener) this.listen();
   }
 
   /**
@@ -152,7 +152,7 @@ class Converter extends eventEmitter {
 
 Converter.defaultParams = {
   queue: 5,
-  auto: true
+  listener: false
 };
 Converter.SERVICE_STOP = 'stop';
 Converter.SERVICE_STARTING = 'starting';

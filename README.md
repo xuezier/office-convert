@@ -52,3 +52,12 @@ unoconv start need use port 2002, so if want register unoconv as a service, shou
 var converter = require('office-convert').createConveter();
 converter.generate(originFilePath, outputFileType, ouputFilePath).then(console.log).catch(console.error);
 ```
+*if use this module to converting documents, you can start a unoconv listener first*
+```js
+var converter = require('office-convert').createConveter({listener: true});
+```
+or
+```js
+var converter = require('office-convert').createConveter();
+converter.listen();
+```
