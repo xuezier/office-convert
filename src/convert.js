@@ -130,6 +130,10 @@ class Converter extends eventEmitter {
     });
   }
 
+  generatefromstream(){
+
+  }
+
   /**
    * convert file to html file
    *

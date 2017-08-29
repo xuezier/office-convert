@@ -18,7 +18,7 @@ module.exports = {
   finishStart: function() {
     if (!this._convertQueue.length) return this.CONVERT_STATUS = this.constructor.CONVERT_FINISHED;
 
-    var _convertId = this._convertQueue.pop();
+    var _convertId = this._convertQueue.shift();
     this.emit(_convertId);
   }
 };

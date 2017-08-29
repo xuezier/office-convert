@@ -1,6 +1,6 @@
 {
   "name": "office-convert",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "Wrapper for converting documents with unoconv.\nconvert office document to other file type or html.",
   "keywords": [
     "unoconv",
@@ -19,5 +19,6 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "xuezi",
-  "license": "ISC"
+  "license": "ISC",
+  "os": ["!win32"]
 }
